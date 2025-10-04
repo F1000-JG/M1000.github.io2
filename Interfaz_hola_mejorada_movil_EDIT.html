@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Interfaz: Cámara + Traducción + Voz (Mejorada • Móvil)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#3F094F"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- MediaPipe (móvil: sin camera_utils, usamos getUserMedia) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <style>
+    :root { --bg:#0D0D0D; --card:#3F094F; --muted:#F2F2F2; --accent1:#D923DB; --accent2:#80277B; }
+    html { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .message-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 1rem; padding: 1rem; margin-top: .5rem; font-size: 1.5rem; text-align: center; font-weight: bold; }
+    .subtitle-box { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: .75rem; padding: .5rem .75rem; font-size: 1rem; text-align: center; font-weight: 700; color: #F2F2F2; }
+    video { transform: scaleX(-1); } /* efecto espejo en cámara frontal */
+    .hint { font-size:.85rem; opacity:.9 }
+  </style>
+</head>
+
+<body class="min-h-screen bg-[var(--bg)] text-[var(--muted)]">
+  <header class="bg-[var(--card)] shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-5 flex justify-between items-center gap-2">
+      <h1 class="text-xl sm:text-2xl font-extrabold">✋ Aprende Lengua de Señas (Móvil)</h1>
+      <nav class="flex gap-2">
+        <a href="index.html" class="px-3 sm:px-4 py-2 rounded-lg bg-[var(--accent1)] hover:bg-[var(--accent2)] font-semibold text-white">Inicio</a>
+        <button id="btnToggleAuto" class="px-3 sm:px-4 py-2 rounded-lg bg-[var(--accent2)] hover:bg-[var(--accent1)] font-semibold text-white">Auto: OFF</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-3 sm:px-4 pb-24">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4">
+      <!-- CÁMARA -->
+      <section class="bg-[var(--card)]/60 rounded-2xl p-3 sm:p-4 shadow-xl ring-1 ring-white/5 lg:col-span-2">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-lg font-semibold">Cámara</h2>
+          <span class="text-xs text-[var(--muted)]" id="camStatus">inactiva</span>
+        </div>
+        <div class="space-y-3">
+          <div class="relative w-full overflow-hidden rounded-xl ring-1 ring-white/10">
+            <video id="video" class="w-full h-auto object-cover bg-black" playsinline muted></video>
+            <canvas id="canvas" class="absolute inset-0 w-full h-full"></canvas>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
+            <button id="btnStartCam" class="px-3 py-2 rounded-xl bg-[var(--accent1)] hover:bg-[var(--accent2)] transition font-medium">Iniciar</button>
+            <button id="btnStopCam"  class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] transition font-medium">Detener</button>
+            <button id="btnFlip"     class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] transition font-medium">Cambiar cámara</button>
+            <button id="btnTranslateText" class="px-3 py-2 rounded-xl bg-[var(--accent2)] hover:bg-[var(--accent1)] transition font-medium">Traducir a Texto</button>
+            <button id="btnTranslateVoice" class="px-3 py-2 rounded-xl bg-[var(--accent2)] hover:bg-[var(--accent1)] transition font-medium">Traducción a Voz</button>
+            <button id="btnWake" class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] transition font-medium">Mantener pantalla</button>
+          </div>
+          <p id="secureHint" class="hint text-xs"></p>
+          <div id="subtitles" class="subtitle-box">Aquí aparecerán los subtítulos de las señas</div>
+        </div>
+      </section>
+
+      <!-- ENTRENADOR + MENSAJES -->
+      <section class="bg-[var(--card)]/60 rounded-2xl p-3 sm:p-4 shadow-xl ring-1 ring-white/5">
+        <h3 class="font-semibold mb-2">Entrenador rápido (letras)</h3>
+        <div class="space-y-3">
+          <div class="flex gap-2">
+            <select id="labelSelect" class="bg-[#0D0D0D] rounded-xl p-2 ring-1 ring-white/10 flex-1">
+              <option value="">— Selecciona letra —</option>
+            </select>
+            <button id="btnAddSample" class="px-3 py-2 rounded-xl bg-[var(--accent1)] hover:bg-[var(--accent2)] font-medium">Agregar</button>
+          </div>
+          <div class="text-xs text-[var(--muted)]" id="sampleInfo">0 clases | 0 muestras</div>
+          <div class="flex gap-2">
+            <button id="btnClearData" class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Borrar</button>
+            <button id="btnExportData" class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Exportar</button>
+            <input id="fileImport" type="file" accept="application/json" class="hidden" />
+            <button id="btnImportData" class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Importar</button>
+          </div>
+        </div>
+
+        <h3 class="font-semibold mt-6 mb-2">Enviar texto</h3>
+<div class="space-y-2">
+  <div class="flex gap-2">
+    <input id="sendInput" type="text"
+      class="flex-1 bg-[#0D0D0D] rounded-xl p-3 ring-1 ring-white/10"
+      placeholder="Aquí se van armando las letras detectadas…" />
+    <button id="btnSend"
+      class="px-4 py-2 rounded-xl bg-[var(--accent1)] hover:bg-[var(--accent2)] transition font-semibold">
+      Enviar
+    </button>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <button id="btnSpace"    class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Espacio</button>
+    <button id="btnBack"     class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Borrar ⌫</button>
+    <button id="btnClear"    class="px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[#5a0b5a] font-medium">Limpiar</button>
+    <button id="btnSpeakAll" class="px-3 py-2 rounded-xl bg-[var(--accent2)] hover:bg-[var(--accent1)] font-medium">Leer en voz</button>
+  </div>
+  <div id="messageContainer" class="mt-2"></div>
+</div>
+</section>
+    </div>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-4 pb-10 text-center text-xs text-[var(--muted)]">
+    Hecho por el equipo de SingToSpeech.
+  </footer>
+
+<script>
+// ===== Aviso de contexto seguro =====
+const isSecure = window.isSecureContext;
+const secureHint = document.getElementById('secureHint');
+secureHint.textContent = isSecure
+  ? '✅ Origen seguro. Cámara habilitable.'
+  : '⚠️ Abrí esta página desde HTTPS o http://localhost (o un servidor local en tu Android) para que la cámara funcione.';
+
+// ====== SELECTORES ======
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const subtitles = document.getElementById('subtitles');
+const camStatus = document.getElementById('camStatus');
+const video = document.getElementById('video');
+const btnStartCam = document.getElementById('btnStartCam');
+const btnStopCam  = document.getElementById('btnStopCam');
+const btnTranslateText  = document.getElementById('btnTranslateText');
+const btnTranslateVoice = document.getElementById('btnTranslateVoice');
+const btnFlip = document.getElementById('btnFlip');
+const btnWake = document.getElementById('btnWake');
+const btnToggleAuto = document.getElementById('btnToggleAuto');
+
+const labelSelect = document.getElementById('labelSelect');
+const btnAddSample = document.getElementById('btnAddSample');
+const btnClearData = document.getElementById('btnClearData');
+const btnExportData = document.getElementById('btnExportData');
+const btnImportData = document.getElementById('btnImportData');
+const fileImport = document.getElementById('fileImport');
+const sampleInfo = document.getElementById('sampleInfo');
+
+const sendInput = document.getElementById('sendInput');
+const btnSend = document.getElementById('btnSend');
+const messageContainer = document.getElementById('messageContainer');
+
+// Rellenar selector A–Z
+(() => {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  for (const L of letters){
+    const opt = document.createElement('option');
+    opt.value = L; opt.textContent = L;
+    labelSelect.appendChild(opt);
+  }
+})();
+
+// ====== MEDIAPIPE (sin camera_utils) ======
+const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 0, // móvil: más ligero
+  minDetectionConfidence: 0.6,
+  minTrackingConfidence: 0.6,
+  selfieMode: true
+});
+
+// ====== DATASET (KNN) ======
+const dataset = Object.create(null);
+const centroids = Object.create(null);
+
+function saveDataset(){
+  const packed = {};
+  for (const [k, arr] of Object.entries(dataset)) packed[k] = arr.map(v => Array.from(v));
+  try { localStorage.setItem('lessa-dataset', JSON.stringify(packed)); } catch {}
+}
+function loadDataset(){
+  try {
+    const raw = localStorage.getItem('lessa-dataset'); if (!raw) return;
+    const packed = JSON.parse(raw);
+    for (const [k, arr] of Object.entries(packed)) dataset[k] = arr.map(a => Float32Array.from(a));
+    recomputeCentroids();
+    updateSampleInfo();
+  } catch {}
+}
+loadDataset();
+function updateSampleInfo(){
+  let classes = 0, samples = 0;
+  for (const arr of Object.values(dataset)){ if (arr.length){ classes++; samples += arr.length; } }
+  sampleInfo.textContent = `${classes} clases | ${samples} muestras`;
+}
+function recomputeCentroids(){
+  for (const [lab, arr] of Object.entries(dataset)){
+    if (!arr.length){ delete centroids[lab]; continue; }
+    const dim = arr[0].length;
+    const c = new Float32Array(dim);
+    for (const v of arr) for (let i=0;i<dim;i++) c[i]+=v[i];
+    for (let i=0;i<dim;i++) c[i]/=arr.length;
+    centroids[lab] = c;
+  }
+}
+function l2(a,b){ let s=0; for (let i=0;i<a.length;i++){ const d=a[i]-b[i]; s+=d*d; } return Math.sqrt(s); }
+function predictKNN(feat, kOverride){
+  let total=0; for (const arr of Object.values(dataset)) total += arr.length;
+  if (!total) return {label:null, conf:0};
+  const k = Math.max(3, Math.min(7, kOverride ?? Math.round(Math.sqrt(total)) ));
+  const entries = [];
+  for (const [lab, arr] of Object.entries(dataset)){
+    for (const v of arr){
+      entries.push({lab, d:l2(feat, v)});
+    }
+  }
+  entries.sort((a,b)=>a.d-b.d);
+  const top = entries.slice(0, Math.min(k, entries.length));
+  const votes = {}; let sum=0, bestLab=null, bestScore=-1;
+  for (const n of top){
+    const w = 1/(n.d + 1e-6);
+    votes[n.lab] = (votes[n.lab]||0) + w;
+    sum += w;
+    if (votes[n.lab] > bestScore){ bestScore = votes[n.lab]; bestLab = n.lab; }
+  }
+  let boostLab=null, boostScore=-1;
+  for (const [lab, c] of Object.entries(centroids)){
+    const w = 1/(l2(feat,c) + 1e-6);
+    if (w > boostScore){ boostScore = w; boostLab = lab; }
+  }
+  if (boostLab){
+    votes[boostLab] = (votes[boostLab]||0) + 0.2*boostScore;
+    bestLab=null; bestScore=-1; sum=0;
+    for (const v of Object.values(votes)) sum += v;
+    for (const [lab, v] of Object.entries(votes)){ if (v > bestScore){ bestScore = v; bestLab = lab; } }
+  }
+  const conf = bestScore/(sum||1);
+  return {label:bestLab, conf};
+}
+
+// ===== GEOMETRÍA / FEATURES =====
+function vsub(a,b){ return {x:a.x-b.x, y:a.y-b.y, z:(a.z||0)-(b.z||0)}; }
+function vlen(a){ return Math.hypot(a.x, a.y, a.z||0); }
+function dist(a,b){ return vlen(vsub(a,b)); }
+function rotXY(p, c, s){ return {x:p.x*c - p.y*s, y:p.x*s + p.y*c, z:p.z||0}; }
+function normalizeLandmarks(landmarks, handed='Right'){
+  const lm = landmarks.map(p => ({x:p.x, y:p.y, z:p.z||0}));
+  if (handed === 'Left'){ for (const p of lm) p.x = -p.x; }
+  const wrist = {...lm[0]};
+  for (const p of lm){ p.x-=wrist.x; p.y-=wrist.y; p.z-=wrist.z; }
+  const mcpIdx=[5,9,13,17]; let acc=0; for (const i of mcpIdx) acc += vlen(lm[i]);
+  const scale = (acc/mcpIdx.length)||1e-6;
+  for (const p of lm){ p.x/=scale; p.y/=scale; p.z/=scale; }
+  const axis = {x:lm[9].x, y:lm[9].y};
+  const th = Math.atan2(axis.y, axis.x) - Math.PI/2;
+  const c=Math.cos(th), s=Math.sin(th);
+  for (let i=0;i<lm.length;i++){ lm[i] = rotXY(lm[i], c, s); }
+  return lm;
+}
+function fingerCurl(lm, tip, pip, mcp){
+  const d_tip = dist(lm[tip], lm[mcp]);
+  const d_pip = dist(lm[pip], lm[mcp]);
+  return (d_pip - d_tip);
+}
+function extractFeatures(landmarks, handed='Right'){
+  const lm = normalizeLandmarks(landmarks, handed);
+  const out = [];
+  for (let i=0;i<21;i++){ out.push(lm[i].x, lm[i].y); }
+  const tips=[4,8,12,16,20], mcps=[5,9,13,17];
+  for (const t of tips) out.push( dist(lm[0], lm[t]) );
+  for (const m of mcps) out.push( dist(lm[0], lm[m]) );
+  out.push( dist(lm[8],lm[12]), dist(lm[12],lm[16]), dist(lm[16],lm[20]), dist(lm[8],lm[20]) );
+  out.push(
+    fingerCurl(lm,8,6,5),
+    fingerCurl(lm,12,10,9),
+    fingerCurl(lm,16,14,13),
+    fingerCurl(lm,20,18,17),
+    fingerCurl(lm,4,3,2)
+  );
+  return Float32Array.from(out);
+}
+
+// ===== REGLAS + HOLA (wave) =====
+function isExtended(lm, tip, pip){ return lm[tip].y < lm[pip].y; }
+function isCurled(lm, tip, pip){ return lm[tip].y > lm[pip].y; }
+function thumbExtended(lm){ return (Math.abs(lm[4].x) > 0.25) && (lm[4].y < lm[3].y); }
+function touch(a,b){ return dist(a,b) < 0.35; }
+function classifyRuleBased(rawLm, handed='Right'){
+  const lm = normalizeLandmarks(rawLm, handed);
+  const ext = { i:isExtended(lm,8,6), m:isExtended(lm,12,10), r:isExtended(lm,16,14), p:isExtended(lm,20,18) };
+  const cur = { i:isCurled(lm,8,6), m:isCurled(lm,12,10), r:isCurled(lm,16,14), p:isCurled(lm,20,18) };
+  const tExt = thumbExtended(lm);
+  if (cur.i && cur.m && cur.r && cur.p && !tExt) return {label:'B', conf:0.95};
+  if (ext.i && ext.m && ext.r && ext.p) return {label:'A', conf:0.90};
+  if (ext.i && tExt && cur.m && cur.r && cur.p) return {label:'L', conf:0.95};
+  if (tExt && ext.p && cur.i && cur.m && cur.r) return {label:'Y', conf:0.90};
+  if (touch(lm[4], lm[8])) return {label:'F', conf:0.92};
+  if (ext.i && cur.m && cur.r && cur.p && !tExt) return {label:'D', conf:0.85};
+  if (ext.i && tExt && cur.m && cur.r && cur.p && Math.abs(lm[4].y - lm[8].y) < 0.12) return {label:'G', conf:0.85};
+  if (tExt && cur.i && cur.m && cur.r && cur.p && lm[4].y < lm[2].y) return {label:'THUMBS_UP', conf:0.9};
+  if (ext.i && ext.m && cur.r && cur.p) return {label:'PEACE', conf:0.9};
+  if (tExt && ext.i && ext.p && cur.m && cur.r) return {label:'ILY', conf:0.9};
+  if (ext.i && ext.m && ext.r && ext.p && tExt && (lm[8].x - lm[5].x > 0.05) && (lm[4].x < lm[8].x)) return {label:'C', conf:0.85};
+  return {label:null, conf:0};
+}
+
+// Wave detector (HOLA)
+const waveHist = [];
+const WAVE_MAX = 24;
+const WAVE_MIN_PEAKS = 3;
+const WAVE_MIN_AMP = 0.10;
+let lastHolaAt = 0;
+const HOLA_COOLDOWN = 1500;
+function detectWave(x){
+  waveHist.push(x);
+  if (waveHist.length > WAVE_MAX) waveHist.shift();
+  if (waveHist.length < 10) return false;
+  const min = Math.min(...waveHist), max = Math.max(...waveHist);
+  if ((max - min) < WAVE_MIN_AMP) return false;
+  let dir = 0, peaks = 0;
+  for (let i=1;i<waveHist.length;i++){
+    const d = waveHist[i] - waveHist[i-1];
+    const s = Math.sign(d);
+    if (s !== 0 && s !== dir){
+      if (dir !== 0) peaks++;
+      dir = s;
+    }
+  }
+  return peaks >= WAVE_MIN_PEAKS;
+}
+// Traducción de gestos
+const SIGN_TRANSLATE = { 'THUMBS_UP':'¡Bien!', 'PEACE':'Paz', 'ILY':'Te quiero', 'F':'OK' };
+
+// ===== SUAVIZADO / CONTROL =====
+const WIN=8, NEED=5, CONF_MIN=0.7;
+let predWin=[];
+let autoOn=false;
+let textBuffer='';
+
+// ===== Voz lenta =====
+const synth = window.speechSynthesis;
+let lastSpoken='', lastAt=0;
+const COOLDOWN=1200;
+function speakSlow(text){
+  const now = performance.now();
+  if (text===lastSpoken && (now-lastAt)<COOLDOWN) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'es-ES';
+  u.rate = 0.85;
+  u.pitch = 1.0;
+  try { synth.speak(u); } catch {}
+  lastSpoken=text; lastAt=now;
+}
+
+// ===== Dibujo =====
+function toCanvasXY(pt, w, h){ return { x: pt.x * w, y: pt.y * h }; }
+function drawPointer(ctx, p, color = '#00E5FF') {
+  const rOuter = 12, rInner = 5;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, rOuter, 0, Math.PI*2);
+  ctx.fillStyle = color + '33';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, rInner, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+// ===== Cámara móvil (getUserMedia) =====
+let stream = null;
+let facingMode = 'user';
+let rafId = null;
+
+async function startCam(){
+  if (!navigator.mediaDevices?.getUserMedia){
+    alert('Tu navegador no soporta getUserMedia.');
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: {ideal: 640}, height: {ideal: 480} },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    function fit(){
+      const rect = video.getBoundingClientRect();
+      canvas.width = video.videoWidth || rect.width;
+      canvas.height = video.videoHeight || rect.height;
+    }
+    fit();
+    window.addEventListener('resize', fit);
+
+    camStatus.textContent = 'activa';
+    loop();
+  } catch (err){
+    console.error(err);
+    camStatus.textContent = 'error';
+    alert('No se pudo acceder a la cámara. Verificá permisos y conexión segura.');
+  }
+}
+function stopCam(){
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  if (stream){
+    for (const tr of stream.getTracks()) tr.stop();
+    stream = null;
+  }
+  camStatus.textContent = 'inactiva';
+}
+function flipCam(){
+  facingMode = (facingMode === 'user') ? 'environment' : 'user';
+  video.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'none';
+  stopCam();
+  startCam();
+}
+
+// ===== Loop de resultados (MediaPipe) =====
+function drawHands(results){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const handsLM = results.multiHandLandmarks || [];
+  const handsHD = results.multiHandedness   || [];
+
+  if (handsLM.length){
+    for (let i=0;i<handsLM.length;i++){
+      const lm = handsLM[i];
+      const handed = (handsHD[i] && handsHD[i].label) ? handsHD[i].label : 'Right';
+      const color = handed === 'Left' ? '#FF7A00' : '#3DDC97';
+      drawConnectors(ctx, lm, HAND_CONNECTIONS, { color, lineWidth: 3 });
+      drawLandmarks(ctx, lm, { color: '#FFFFFF', lineWidth: 2 });
+      const pWrist = toCanvasXY(lm[0], canvas.width, canvas.height);
+      ctx.font = '12px Inter, system-ui';
+      ctx.fillStyle = color;
+      ctx.fillText(handed, pWrist.x + 8, pWrist.y - 8);
+      const pIndex = toCanvasXY(lm[8], canvas.width, canvas.height);
+      const pThumb = toCanvasXY(lm[4], canvas.width, canvas.height);
+      drawPointer(ctx, pIndex, color);
+      drawPointer(ctx, pThumb, color);
+      ctx.beginPath();
+      ctx.moveTo(pThumb.x, pThumb.y);
+      ctx.lineTo(pIndex.x, pIndex.y);
+      ctx.strokeStyle = color + 'AA';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+}
+
+let lastLandmarks=null, lastHanded='Right';
+hands.onResults((results)=>{
+  drawHands(results);
+
+  const handsLM = results.multiHandLandmarks || [];
+  const handsHD = results.multiHandedness   || [];
+
+  if (handsLM.length){
+    const lm0 = handsLM[0];
+    lastLandmarks = lm0;
+    if (handsHD[0]?.label) lastHanded = handsHD[0].label;
+
+    const norm0 = normalizeLandmarks(lm0, lastHanded);
+    const now = performance.now();
+    if (detectWave(norm0[0].x) && (now - lastHolaAt) > HOLA_COOLDOWN){
+      appendOutput('Hola');
+      lastHolaAt = now;
+      predWin.length = 0;
+    }
+
+    if (autoOn){
+      const rule = classifyRuleBased(lm0, lastHanded);
+      if (rule.label) predWin.push({label:rule.label, conf:rule.conf, type:'rule'});
+
+      if (Object.keys(dataset).length){
+        const feat = extractFeatures(lastLandmarks, lastHanded);
+        const pr = predictKNN(feat);
+        if (pr.label && pr.conf >= 0.6) predWin.push({label:pr.label, conf:pr.conf, type:'knn'});
+      }
+
+      if (predWin.length > WIN) predWin.shift();
+      const tally={};
+      for (const p of predWin){
+        if (!p.label || p.conf < CONF_MIN) continue;
+        const key = p.label + '|' + p.type;
+        tally[key] = (tally[key]||0) + 1;
+      }
+      let bestKey=null, bestCnt=0;
+      for (const [k,n] of Object.entries(tally)){ if (n>bestCnt){ bestCnt=n; bestKey=k; } }
+      if (bestKey && bestCnt >= NEED){
+        const [lab,t] = bestKey.split('|');
+        const out = (t==='rule' ? (SIGN_TRANSLATE[lab] || lab) : lab);
+        appendOutput(out);
+        predWin.length = 0;
+      } else {
+        if (rule?.label) subtitles.textContent = `Seña: ${rule.label} ${(rule.conf*100|0)}%`;
+        else subtitles.textContent = '👋 Mano detectada';
+      }
+    } else {
+      subtitles.textContent = '👋 Mano detectada';
+    }
+  } else {
+    lastLandmarks = null;
+    predWin.length = 0;
+    subtitles.textContent = "❌ No se detecta mano";
+  }
+});
+
+function appendOutput(txt){
+  if (textBuffer && !textBuffer.endsWith(' ')) textBuffer+=' ';
+  textBuffer += txt + ' ';
+  subtitles.textContent = `🧠 ${textBuffer}`;
+  speakSlow(txt);
+}
+
+async function loop(){
+  const send = async () => {
+    if (video.readyState >= 2){
+      await hands.send({ image: video });
+    }
+    rafId = requestAnimationFrame(send);
+  };
+  send();
+}
+
+// ===== Wake Lock =====
+let wakeLockSentinel = null;
+async function requestWakeLock(){
+  try {
+    if ('wakeLock' in navigator){
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+      btnWake.textContent = 'Pantalla activa ✓';
+      wakeLockSentinel.addEventListener('release', ()=>{
+        btnWake.textContent = 'Mantener pantalla';
+      });
+    } else {
+      alert('Wake Lock no soportado en este dispositivo.');
+    }
+  } catch (e){
+    alert('No se pudo activar Wake Lock.');
+  }
+}
+
+// ===== UI =====
+btnStartCam.addEventListener('click', startCam, {passive:true});
+btnStopCam.addEventListener('click', stopCam, {passive:true});
+btnFlip.addEventListener('click', flipCam, {passive:true});
+btnWake.addEventListener('click', requestWakeLock, {passive:true});
+
+btnTranslateText.onclick = () => { autoOn = true; btnToggleAuto.textContent = 'Auto: ON'; subtitles.textContent = "✍ Traducción automática a texto activada"; };
+btnTranslateVoice.onclick = () => { autoOn = !autoOn; btnToggleAuto.textContent = autoOn ? 'Auto: ON' : 'Auto: OFF'; subtitles.textContent = autoOn ? "🎤 Traducción a voz activada" : "🛑 Traducción detenida"; };
+btnToggleAuto.onclick = () => btnTranslateVoice.onclick();
+
+btnSend.onclick = () => {
+  const msg = sendInput.value.trim();
+  if (!msg) return;
+  const div = document.createElement('div');
+  div.className = "message-box";
+  div.textContent = msg;
+  messageContainer.appendChild(div);
+  sendInput.value = "";
+};
+
+btnAddSample.onclick = () => {
+  const lab = labelSelect.value;
+  if (!lab){ alert('Selecciona una letra.'); return; }
+  if (!lastLandmarks){ alert('No hay mano detectada.'); return; }
+  const feat = extractFeatures(lastLandmarks, lastHanded);
+  dataset[lab] = dataset[lab] || [];
+  dataset[lab].push(feat);
+  saveDataset(); recomputeCentroids(); updateSampleInfo();
+};
+btnClearData.onclick = () => {
+  for (const k of Object.keys(dataset)) delete dataset[k];
+  for (const k of Object.keys(centroids)) delete centroids[k];
+  saveDataset(); updateSampleInfo();
+  alert('Dataset borrado.');
+};
+btnExportData.onclick = () => {
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(localStorage.getItem('lessa-dataset') || '{}');
+  const a = document.createElement('a');
+  a.href = dataStr; a.download = 'lessa-dataset.json'; a.click();
+};
+btnImportData.onclick = () => fileImport.click();
+fileImport.addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if (!f) return;
+  const txt = await f.text();
+  try {
+    localStorage.setItem('lessa-dataset', txt);
+    for (const k of Object.keys(dataset)) delete dataset[k];
+    for (const k of Object.keys(centroids)) delete centroids[k];
+    loadDataset();
+    alert('Dataset importado.');
+  } catch (err){ alert('No se pudo importar JSON'); }
+});
+
+
+// ===== Composer helpers =====
+function composerInsertLetter(ch){
+  sendInput.value += ch;
+  subtitles.textContent = '✍ ' + sendInput.value;
+}
+function composerInsertWord(word){
+  if (sendInput.value && !sendInput.value.endsWith(' ')) sendInput.value += ' ';
+  sendInput.value += word + ' ';
+  subtitles.textContent = '✍ ' + sendInput.value;
+}
+function composerSpace(){
+  if (!sendInput.value.endsWith(' ')) sendInput.value += ' ';
+  subtitles.textContent = '✍ ' + sendInput.value;
+}
+function composerBackspace(){
+  if (!sendInput.value) return;
+  sendInput.value = sendInput.value.slice(0, -1);
+  subtitles.textContent = '✍ ' + sendInput.value;
+}
+function composerClear(){
+  sendInput.value = '';
+  subtitles.textContent = '🧠 buffer vacío';
+}
+function composerSpeak(){
+  const txt = sendInput.value.trim();
+  if (txt) speakSlow(txt);
+}
+function pushMessage(){
+  const msg = sendInput.value.trim();
+  if (!msg) return;
+  const div = document.createElement('div');
+  div.className = "message-box";
+  div.textContent = msg;
+  messageContainer.appendChild(div);
+  sendInput.value = '';
+  subtitles.textContent = '✅ Mensaje enviado';
+}
+
+// Controles rápidos
+document.getElementById('btnSpace')?.addEventListener('click', composerSpace, {passive:true});
+document.getElementById('btnBack')?.addEventListener('click', composerBackspace, {passive:true});
+document.getElementById('btnClear')?.addEventListener('click', composerClear, {passive:true});
+document.getElementById('btnSpeakAll')?.addEventListener('click', composerSpeak, {passive:true});
+
+// Reemplaza el handler de Enviar (si ya lo tenías)
+if (typeof btnSend !== 'undefined') btnSend.onclick = pushMessage;
+
+// Anti-repetición por letra/palabra
+let lastAppended = '';
+let lastAppendAt = 0;
+const APPEND_COOLDOWN = 450; // ms
+
+function appendOutput(txt){
+  const now = performance.now();
+  if (txt === lastAppended && (now - lastAppendAt) < APPEND_COOLDOWN) return;
+
+  const isSingleLetter = /^[A-ZÑ]$/i.test(txt);
+
+  if (isSingleLetter){
+    composerInsertLetter(txt.toUpperCase());
+  } else {
+    composerInsertWord(txt);
+    if (typeof speakSlow === 'function') speakSlow(txt);
+  }
+
+  lastAppended = txt;
+  lastAppendAt = now;
+}
+
+</script>
+</body>
+</html>
