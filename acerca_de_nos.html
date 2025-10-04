@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sing to Speech · Equipo</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <meta name="color-scheme" content="dark light"/>
+  <meta name="theme-color" content="#3F094F"/>
+
+  <style>
+    :root{
+      --bg:#0D0D0D; --card:#3F094F; --muted:#F2F2F2; --accent1:#D923DB; --accent2:#80277B;
+    }
+    html { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial; }
+
+    /* ======= FONDO MALLA (Mesh Gradient) ======= */
+    .mesh-bg{
+      position: fixed; inset: 0; z-index: -1; overflow: hidden;
+      background: #0d0d0d;
+      /* capa base tenue */
+      background-image:
+        radial-gradient(50% 40% at 15% 20%, #4b0c59 0%, rgba(75,12,89,0) 55%),
+        radial-gradient(45% 40% at 85% 25%, #7b1d81 0%, rgba(123,29,129,0) 55%),
+        radial-gradient(55% 45% at 25% 85%, #2a0a33 0%, rgba(42,10,51,0) 55%),
+        radial-gradient(60% 50% at 70% 80%, #5b114a 0%, rgba(91,17,74,0) 55%);
+      filter: saturate(1.1) contrast(1.02);
+    }
+
+    /* blobs animados para sensación orgánica de malla */
+    .mesh-bg .blob{
+      position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%;
+      opacity: .5; filter: blur(60px);
+      mix-blend-mode: screen;
+      animation: float 24s ease-in-out infinite;
+      will-change: transform;
+    }
+    .blob.b1{ background: radial-gradient(circle at 30% 30%, #D923DB, transparent 55%); left:-10vmax; top:-8vmax; animation-delay: -3s; }
+    .blob.b2{ background: radial-gradient(circle at 60% 40%, #80277B, transparent 55%); right:-8vmax; top:10vmax; animation-delay: -8s; }
+    .blob.b3{ background: radial-gradient(circle at 40% 60%, #8a1a9b, transparent 60%); left:10vmax; bottom:-12vmax; animation-delay: -13s; }
+    .blob.b4{ background: radial-gradient(circle at 50% 50%, #3b0a52, transparent 60%); right:-12vmax; bottom:-10vmax; animation-delay: -18s; }
+
+    @keyframes float{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      25%    { transform: translate3d(4vmax,-2vmax,0) scale(1.05); }
+      50%    { transform: translate3d(-3vmax,3vmax,0) scale(0.98); }
+      75%    { transform: translate3d(2vmax,1vmax,0) scale(1.03); }
+    }
+
+    /* Trama tipo malla: líneas finas diagonales + puntillado muy sutil */
+    .mesh-bg::before{
+      content:""; position:absolute; inset:-25%;
+      background:
+        repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 24px),
+        radial-gradient(#ffffff12 1px, transparent 1.6px) 0 0 / 26px 26px;
+      mix-blend-mode: overlay;
+      opacity:.35; filter: blur(.3px);
+      animation: drift 30s linear infinite;
+    }
+    @keyframes drift { to { transform: translate3d(26px, 26px, 0); } }
+
+    /* Tarjetas */
+    .card {
+      background: color-mix(in oklab, var(--card) 65%, #000 35%);
+      border: 1px solid rgba(255,255,255,.08);
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .card:hover{ transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.35); border-color: rgba(255,255,255,.18); }
+
+    /* Botón primario */
+    .btn-primary{
+      background: var(--accent1); color:white; font-weight:700; border-radius: 12px;
+      transition: transform .15s ease, background .2s ease;
+    }
+    .btn-primary:hover{ background: var(--accent2); transform: translateY(-1px); }
+
+    /* Accesibilidad foco */
+    a:focus-visible, button:focus-visible{ outline: 2px solid #fff; outline-offset: 2px; }
+
+    /* Respeto a “Reduce motion” */
+    @media (prefers-reduced-motion: reduce){
+      .card, .btn-primary { transition: none; }
+      .mesh-bg::before, .blob { animation: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-[var(--muted)] bg-[var(--bg)]">
+  <!-- ===== Fondo malla ===== -->
+  <div class="mesh-bg" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-[var(--card)]/80 backdrop-blur border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl" aria-hidden="true">✋</span>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">Sing to Speech</h1>
+      </div>
+      <nav class="flex items-center gap-2" aria-label="Navegación principal">
+        <a href="index.html" class="btn-primary px-4 py-2">Inicio</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero / Intro -->
+  <section class="max-w-6xl mx-auto px-4 pt-10">
+    <div class="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 sm:p-8">
+      <h2 class="text-3xl sm:text-4xl font-extrabold mb-3">Conoce al equipo</h2>
+      <p class="text-gray-300 leading-relaxed max-w-3xl">
+        Somos <strong>Sing to Speech</strong>, un proyecto que busca mejorar la comunicación entre personas oyentes y no oyentes,
+        rompiendo barreras con tecnología accesible. Nacimos de un sueño compartido y hoy somos una plataforma en evolución
+        que quiere <em>conectar</em>, <em>incluir</em> y <em>dar voz</em> a más personas.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="#equipo" class="btn-primary px-4 py-2">Ver integrantes</a>
+        <a href="#nosotros" class="px-4 py-2 rounded-xl border border-white/15 hover:border-white/25 bg-white/5">Nuestra misión</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grid de tarjetas -->
+  <main id="equipo" class="max-w-6xl mx-auto px-4 py-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+      <!-- 1 -->
+      <article class="card rounded-2xl p-4 text-center">
+        <img src="Adriana.jpeg" alt="Retrato de Adriana Flores" class="w-36 h-36 object-cover rounded-xl mx-auto ring-1 ring-white/20"
+             loading="lazy" decoding="async" />
+        <h3 class="mt-4 text-lg font-bold">Adriana Flores</h3>
+        <p class="text-sm text-gray-300">Coordinadora</p>
+      </article>
+
+      <!-- 2 -->
+      <article class="card rounded-2xl p-4 text-center">
+        <img src="Lorgio.jpeg" alt="Retrato de Emmanuel Pérez" class="w-36 h-36 object-cover rounded-xl mx-auto ring-1 ring-white/20"
+             loading="lazy" decoding="async" />
+        <h3 class="mt-4 text-lg font-bold">Emmanuel Pérez</h3>
+        <p class="text-sm text-gray-300">Subcoordinador</p>
+      </article>
+
+      <!-- 3 -->
+      <article class="card rounded-2xl p-4 text-center">
+        <img src="William.jpeg" alt="Retrato de William Pérez" class="w-36 h-36 object-cover rounded-xl mx-auto ring-1 ring-white/20"
+             loading="lazy" decoding="async" />
+        <h3 class="mt-4 text-lg font-bold">William Pérez</h3>
+        <p class="text-sm text-gray-300">Desarrollador</p>
+      </article>
+
+      <!-- 4 -->
+      <article class="card rounded-2xl p-4 text-center">
+        <img src="Fernando.jpeg" alt="Retrato de Fernando Isaac" class="w-36 h-36 object-cover rounded-xl mx-auto ring-1 ring-white/20"
+             loading="lazy" decoding="async" />
+        <h3 class="mt-4 text-lg font-bold">Fernando Isaac</h3>
+        <p class="text-sm text-gray-300">Diseño &amp; UX</p>
+      </article>
+
+      <!-- 5 -->
+      <article class="card rounded-2xl p-4 text-center">
+        <img src="Noe.jpeg" alt="Retrato de Noé Felipe González" class="w-36 h-36 object-cover rounded-xl mx-auto ring-1 ring-white/20"
+             loading="lazy" decoding="async" />
+        <h3 class="mt-4 text-lg font-bold">Noé Felipe González</h3>
+        <p class="text-sm text-gray-300">IA &amp; Datos</p>
+      </article>
+    </div>
+  </main>
+
+  <!-- Sección nosotros -->
+  <section id="nosotros" class="max-w-6xl mx-auto px-4 pb-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+        <h3 class="text-2xl font-bold mb-3">Nuestra misión</h3>
+        <p class="text-gray-300 leading-relaxed">
+          Lo que comenzó como una idea se convirtió en un trabajo constante: diseñar la plataforma, aprender herramientas y superar retos técnicos.
+          Creemos que la comunicación es un derecho universal. <strong>Sing to Speech</strong> no es solo tecnología:
+          es un puente que conecta personas y promueve la igualdad con un enfoque inclusivo y humano.
+        </p>
+      </div>
+
+      <aside class="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
+        <h4 class="text-lg font-semibold mb-2">Enlaces rápidos</h4>
+        <ul class="space-y-2 text-[15px]">
+          <li><a class="underline decoration-[var(--accent2)] hover:decoration-[var(--accent1)]" href="index.html">Inicio</a></li>
+          <li><a class="underline decoration-[var(--accent2)] hover:decoration-[var(--accent1)]" href="Uacercade.html">Aprende Lengua de Señas</a></li>
+          <li><a class="underline decoration-[var(--accent2)] hover:decoration-[var(--accent1)]" href="Interfaz_hola_mejorada_movil.html">Cámara + Traducción</a></li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10">
+    <div class="max-w-6xl mx-auto px-4 py-8 text-center text-sm text-gray-400">
+      © 2025 Sing to Speech — Hecho  por el equipo Sing.
+    </div>
+  </footer>
+
+  <script>
+    // Fallback de avatar con iniciales si una imagen falla
+    document.querySelectorAll('img[alt^="Retrato"]').forEach(img => {
+      img.addEventListener('error', () => {
+        const name = img.nextElementSibling?.textContent?.trim() || 'Integrante';
+        const initials = name.split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+        const svg = encodeURIComponent(`
+          <svg xmlns='http://www.w3.org/2000/svg' width='144' height='144'>
+            <defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+              <stop offset='0%' stop-color='#D923DB'/><stop offset='100%' stop-color='#80277B'/>
+            </linearGradient></defs>
+            <rect width='100%' height='100%' rx='16' fill='url(#g)'/>
+            <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle'
+                  font-family='Inter, system-ui' font-size='56' font-weight='800' fill='white'>${initials}</text>
+          </svg>`);
+        img.src = `data:image/svg+xml;charset=utf-8,${svg}`;
+      }, { once:true });
+    });
+  </script>
+</body>
+</html>

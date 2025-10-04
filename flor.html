@@ -1,0 +1,257 @@
+<!--
+Archivo: flores_amarillas_pro.html
+Descripción: Página HTML autónoma que muestra flores amarillas con estilo profesional,
+responsive y con sutiles animaciones. Copia este archivo y ábrelo en tu navegador.
+--><!doctype html>
+
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flores Amarillas - Pro</title>
+  <style>
+    :root{
+      --bg1: #f6f8fb;
+      --accent: #FFD54A; /* amarillo pétalo */
+      --accent-2: #FFC107; /* centro */
+      --leaf: #2e7d32;
+      --shadow: rgba(16,24,40,0.12);
+    }*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(180deg,var(--bg1),#ffffff);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  color:#0f172a;
+  padding:32px;
+}
+
+.card{
+  width:min(1100px,96%);
+  background:linear-gradient(180deg,rgba(255,255,255,0.9),#fff);
+  border-radius:20px;
+  padding:32px;
+  box-shadow: 0 8px 30px var(--shadow);
+  display:grid;
+  grid-template-columns: 1fr 420px;
+  gap:28px;
+  align-items:center;
+}
+
+.showcase{
+  display:flex;
+  gap:28px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+}
+
+/* contenedor de cada flor */
+.flower-wrap{
+  width:220px;
+  height:220px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.6),rgba(255,255,255,0.3));
+  box-shadow: 0 6px 20px rgba(2,6,23,0.06);
+  position:relative;
+  overflow:visible;
+  transition:transform 220ms ease, box-shadow 220ms ease;
+}
+.flower-wrap:hover{ transform:translateY(-6px) scale(1.03); box-shadow: 0 14px 40px rgba(2,6,23,0.14);} 
+
+/* leyenda lateral */
+.panel{
+  padding:18px 12px;
+}
+h1{margin:0 0 10px 0;font-size:20px}
+p{margin:0 0 18px 0;line-height:1.45;color:#334155}
+
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:#0f172a;color:#fff;padding:10px 12px;border-radius:10px;text-decoration:none;font-size:13px}
+
+/* animaciones suaves para las flores */
+@keyframes floaty{
+  0%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-8px) rotate(2deg)}
+  100%{transform:translateY(0) rotate(0deg)}
+}
+
+/* tamaño variable vía data-size */
+.flower-wrap[data-size="small"]{width:160px;height:160px}
+.flower-wrap[data-size="large"]{width:260px;height:260px}
+
+/* hoja estilo */
+.stem{
+  position:absolute;
+  bottom:8px;
+  left:14px;
+  width:12px;
+  height:120px;
+  transform-origin:top left;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.08));
+}
+
+/* responsive */
+@media (max-width:880px){
+  .card{grid-template-columns:1fr;}
+  .flower-wrap{width:170px;height:170px}
+}
+
+  </style>
+</head>
+<body>  <div class="card">
+    <div class="showcase"><!-- FLOR 1: SVG con pétalos rotados -->
+  <div class="flower-wrap" style="animation:floaty 6s ease-in-out infinite;" data-size="large">
+    <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="f1">
+      <title id="f1">Flor amarilla moderna</title>
+      <defs>
+        <radialGradient id="petalGrad" cx="30%" cy="30%">
+          <stop offset="0%" stop-color="#fff7d6" />
+          <stop offset="60%" stop-color="var(--accent)" />
+          <stop offset="100%" stop-color="#f3b61a" />
+        </radialGradient>
+        <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.12"/>
+        </filter>
+      </defs>
+
+      <!-- pétalo base (se rotará en un grupo) -->
+      <g transform="translate(100,100)">
+        <g filter="url(#softShadow)">
+          <!-- 8 pétalos -->
+          <g id="petals">
+            <!-- un pétalo repetido 8 veces con rotación -->
+            <g fill="url(#petalGrad)" stroke="#f0a800" stroke-width="0.8">
+              <ellipse cx="52" cy="0" rx="28" ry="44" transform="rotate(20)"/>
+            </g>
+            <use href="#petals" transform="rotate(45)"/>
+          </g>
+
+          <!-- centro -->
+          <circle r="30" fill="var(--accent-2)" stroke="#b36f00" stroke-width="1" />
+          <!-- brillo centro -->
+          <circle cx="-8" cy="-8" r="8" fill="rgba(255,255,255,0.35)" />
+        </g>
+      </g>
+
+    </svg>
+
+    <!-- tallo sutil (SVG) -->
+    <svg class="stem" viewBox="0 0 20 140" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 0 C8 30 12 60 10 90 C9 110 6 130 4 140" stroke="var(--leaf)" stroke-width="6" fill="none" stroke-linecap="round" />
+    </svg>
+  </div>
+
+  <!-- FLOR 2: variante plana + sombra -->
+  <div class="flower-wrap" style="animation:floaty 5.2s ease-in-out infinite;" data-size="small">
+    <svg viewBox="0 0 180 180" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="f2">
+      <title id="f2">Flor amarilla plana</title>
+      <defs>
+        <linearGradient id="petalGrad2" x1="0" x2="1">
+          <stop offset="0" stop-color="#fff8e0"/>
+          <stop offset="1" stop-color="#ffd24a"/>
+        </linearGradient>
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.08"/>
+        </filter>
+      </defs>
+
+      <g transform="translate(90,90)" filter="url(#innerShadow)">
+        <!-- 6 pétalos con forma más angular -->
+        <g fill="url(#petalGrad2)" stroke="#f0a000" stroke-width="0.7">
+          <path d="M40 0 C60 20 60 -20 40 0 L0 40 Z" transform="rotate(0) scale(0.8)" />
+          <use href="#" transform="rotate(60)"/>
+        </g>
+
+        <!-- mejor usar ciclos, aquí repetimos manualmente para compatibilidad -->
+        <g fill="url(#petalGrad2)" stroke="#f0a000" stroke-width="0.7">
+          <g transform="rotate(0)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+          <g transform="rotate(60)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+          <g transform="rotate(120)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+          <g transform="rotate(180)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+          <g transform="rotate(240)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+          <g transform="rotate(300)"><ellipse cx="46" cy="0" rx="20" ry="36"/></g>
+        </g>
+
+        <circle r="20" fill="#ffde6b" stroke="#c78f00" stroke-width="0.9"/>
+      </g>
+
+    </svg>
+  </div>
+
+  <!-- FLOR 3: icono simple con animación de giro -->
+  <div class="flower-wrap" style="animation:floaty 7s ease-in-out infinite;" data-size="large">
+    <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="f3">
+      <title id="f3">Flor amarilla elegante</title>
+      <defs>
+        <radialGradient id="petalGrad3" cx="40%" cy="30%">
+          <stop offset="0%" stop-color="#fff9e6" />
+          <stop offset="80%" stop-color="#ffd24a" />
+        </radialGradient>
+      </defs>
+
+      <g transform="translate(100,100)">
+        <g style="transform-origin:center;animation:spin 14s linear infinite;">
+          <g fill="url(#petalGrad3)" stroke="#f0a000" stroke-width="0.7">
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(12)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(60)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(108)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(156)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(204)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(252)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(300)"/>
+            <ellipse cx="54" cy="0" rx="26" ry="44" transform="rotate(348)"/>
+          </g>
+
+          <circle r="28" fill="#ffcf52" stroke="#b36f00" stroke-width="1"/>
+        </g>
+      </g>
+
+      <style>
+        @keyframes spin{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+      </style>
+    </svg>
+  </div>
+
+</div>
+
+<div class="panel">
+  <h1>Flores amarillas - estilo pro</h1>
+  <p>Este HTML genera flores amarillas con gradientes, sombras y animaciones sutiles. Es responsive y fácil de personalizar:
+  cambia las variables CSS en <code>:root</code> (colores, tamaños) o duplica los <code>.flower-wrap</code> para añadir más flores.</p>
+
+  <div class="controls">
+    <a class="btn" href="#" onclick="downloadHTML();return false;">Descargar HTML</a>
+    <a class="btn" href="#" onclick="toggleAnimation();return false;">Pausar animación</a>
+  </div>
+
+  <script>
+    function toggleAnimation(){
+      const wrappers = document.querySelectorAll('.flower-wrap');
+      const paused = wrappers[0].style.animationPlayState === 'paused';
+      wrappers.forEach(w=> w.style.animationPlayState = paused ? 'running' : 'paused');
+    }
+
+    function downloadHTML(){
+      const content = `<!doctype html>` + '\n' + document.documentElement.outerHTML;
+      const blob = new Blob([content],{type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'flores_amarillas_pro.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+
+</div>
+
+  </div></body>
+</html>
